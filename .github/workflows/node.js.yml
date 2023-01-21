@@ -1,31 +1,38 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+name: Deploy
 
-name: Node.js CI
-
+# Controls when the workflow will run
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build:
-
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [14.x, 16.x, 18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
+    env:
+      # replace with your project/env name
+      ORG_PROJECT: metric-app
+      DEPLOY_ENV: dev
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: yarn ci
-    - run: yarn run build --if-present
-    - run: yarn test
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Lint the codebase
+        run: yarn lint
+
+      - name: Test our code
+        run: yarn test
+
+      - name: Build
+        run: yarn build
+
+      - name: Login
+        run: npx warp login --api-key=${{ secrets.SD_API_KEY }}
+
+      - name: Deploy
+        run: npx warp deploy --project ${ORG_PROJECT} --env ${DEPLOY_ENV}
